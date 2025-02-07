@@ -52,112 +52,119 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-def query_get(order: String):
-
-    cnx = get_DB()
-    cursor = cnx.cursor(dictionary=True)
-    cursor.execute(order)
-    rows = cursor.fetchall()
-    cursor.close()
-    cnx.close()
-
-    if not rows:
-        return None
-        # return {"message": 404, "data": None}
-    else:
-        return rows
+# class gettime():
+#     def time():
+#         time = 
+#         return 
 
 
-def query_post(order: String):
-    cnx = get_DB()
-    cursor = cnx.cursor(dictionary=True)
-    cursor.execute(order)
-    cnx.commit()
-    cursor.close()
-    cnx.close()
-    
-    return {"msg" : 200 , "status" : "Task Added!"}
+class query():
+    def get(order: String):
+        try:
+            conn = get_DB()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(order)
+            data = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
+
+            if not data:
+                return None
+            else:
+                return {
+                    'msg': 200,
+                    'data': data
+                }
+
+        except Exception as err:
+            return {'msg': err, }
+
+    def post(order: String):
+        try:
+            conn = get_DB()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(order)
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            return {'msg': "your task has been added !",
+                    'status': 200}
+
+        except Exception as err:
+            return {'msg': err, }
+
+    def put(order: String):
+        try:
+            cnx = get_DB()
+            cursor = cnx.cursor()
+            cursor.execute(order)
+            cnx.commit()
+            cursor.close()
+            cnx.close()
+
+            return {
+                'msg': 'Success',
+                'status': 200
+            }
+        except Exception as err:
+            return {'msg': err, }
 
 
-def query_put(order: String):
-    cnx = get_DB()
-    cursor = cnx.cursor()
-    cursor.execute(order)
-    cnx.commit()
-    cursor.close()
-    cnx.close()
-
-    return {"message": 200, "status": "state has been change"}
-
-
-
-# model
-
-
-class addData (BaseModel):
-    list_name: str
-    list_desc:str
-class editData (BaseModel):
-    list_id: int
-    list_name: str
-    list_desc:str
-
-
-# models
-
-@app.get('/get.todolist')
-def get_todo_list():
+@app.get('/get.task')
+def get_test():
     try:
-        res = query_get(f"SELECT * FROM todolist_table WHERE del_frag ='N' and success_frag ='N'")
+        res = query.get(
+            f"SELECT * FROM todolist_table WHERE del_frag = 'N' and success_frag = 'N'")
+
+        return res
+    except Exception as err:
+        return {'msg': err}
+
+@app.get('/get.task/success')
+def get_test():
+    try:
+        res = query.get(
+            f"SELECT * FROM todolist_table WHERE del_frag = 'N' and success_frag = 'Y'")
+
+        return res
+    except Exception as err:
+        return {'msg': err}
+
+
+class addTask(BaseModel):
+    name: str
+    desc: str
+
+
+@app.post('/post.task')
+def post_task(data: addTask):
+    try:
+        res = query.post(
+            f"INSERT INTO todolist_table (list_name ,list_desc) VALUES ('{data.name}','{data.desc}')")
+
         return res
 
     except Exception as err:
-        return err
-    
-@app.get('/get.todolist_success')
-def get_todo_list_s():
+        return {'msg': err}
+
+# soft del
+
+
+@app.put('/enp.{table}/{state}/{id}')
+def soft_delete(table: str, id: int,state:str):
     try:
-        res = query_get(f"SELECT * FROM todolist_table WHERE del_frag ='N' and success_frag ='Y'")
-        return res
-
-    except Exception as err:
-        return err
-
-
-    
-    
-@app.put('/put.edit_todolist')
-def put_editlist(data : editData):
-    
-    try:
-        res = query_put(f"UPDATE todolist_table SET list_name = '{data.list_name}' , list_desc = '{data.list_desc}' WHERE list_id = {data.list_id};")
-        return res
-    except Exception as err :
-        return err
-    
-
-@app.put('/set.{path}_frag/{id}')
-# del_frag & success_frag
-def set_status(path:str,id:int):
-    try:
-        res = query_put(f"UPDATE todolist_table SET {path}_frag = 'Y' WHERE list_id = {id}")
+        res = query.put(
+            f"UPDATE {table} SET {state} = 'Y' WHERE list_id = {id};")
         return res
     except Exception as err:
-        return err
-
-
-@app.post('/post.todolist')
-def add_task(data: addData):
+        return {'msg': err}
+    
+@app.put('/put.{table}/{id}')
+def update_task_info(table : str ,id : int,data : addTask):
     try:
-        # print(f"data {data}")
-        res = query_post(f"INSERT INTO todolist_table (list_name , list_desc) VALUES ('{data.list_name}','{data.list_desc}');")
-        
+        res = query.put(f"UPDATE {table} SET list_name = '{data.name}', list_desc = '{data.desc}' WHERE list_id = {id}")
         return res
     except Exception as err:
-        return err
-    
-
-
-
-
+        return {'msg': err}
